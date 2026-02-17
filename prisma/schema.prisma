@@ -1,0 +1,83 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  createdAt DateTime @default(now())
+
+  rideRequests RideRequest[]
+
+  @@index([createdAt])
+}
+
+model Vehicle {
+  id              Int      @id @default(autoincrement())
+  totalSeats      Int
+  luggageCapacity Int
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+
+  pools Pool[]
+
+  @@index([isActive])
+}
+
+model Pool {
+  id            Int      @id @default(autoincrement())
+  vehicleId     Int
+  usedSeats     Int      @default(0)
+  usedLuggage   Int      @default(0)
+  routeDistance Float     @default(0)
+  routeDuration Float?    // optional future use
+  status        String    @default("ACTIVE") // ACTIVE | CLOSED
+  createdAt     DateTime  @default(now())
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id])
+  members PoolMember[]
+
+  @@index([status])
+  @@index([vehicleId])
+  @@index([createdAt])
+}
+
+model RideRequest {
+  id                     Int      @id @default(autoincrement())
+  userId                 Int
+  pickupLat              Float
+  pickupLng              Float
+  dropLat                Float
+  dropLng                Float
+  seatsRequired          Int
+  luggageUnits           Int
+  detourTolerancePercent Float
+  status                 String   @default("PENDING") // PENDING | MATCHED | CANCELLED
+  price                  Float?   // dynamic pricing
+  createdAt              DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+  poolMember PoolMember?
+
+  @@index([status])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+
+model PoolMember {
+  id            Int @id @default(autoincrement())
+  poolId        Int
+  rideRequestId Int @unique
+  sequenceOrder Int?
+
+  pool        Pool        @relation(fields: [poolId], references: [id])
+  rideRequest RideRequest @relation(fields: [rideRequestId], references: [id])
+
+  @@index([poolId])
+}
